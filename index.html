@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .status {
+            font-size: 1.3em;
+            color: #667eea;
+            margin-bottom: 20px;
+            height: 30px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            grid-gap: 5px;
+            margin: 30px auto;
+            background: #667eea;
+            padding: 5px;
+            border-radius: 10px;
+        }
+
+        .cell {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border: none;
+            font-size: 2.5em;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            color: #667eea;
+        }
+
+        .cell:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: scale(1.05);
+        }
+
+        .cell:disabled {
+            cursor: not-allowed;
+        }
+
+        .cell.x {
+            color: #667eea;
+        }
+
+        .cell.o {
+            color: #ff6b6b;
+        }
+
+        .buttons {
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            margin: 10px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .reset-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .mode-btn {
+            background: #f0f0f0;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .mode-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .info {
+            color: #666;
+            margin-top: 20px;
+            font-size: 0.95em;
+        }
+
+        .score {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+
+        .score div {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .score-value {
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        <div class="status" id="status">Player X's turn</div>
+        
+        <div>
+            <button class="mode-btn active" onclick="setGameMode('pvp')">Player vs Player</button>
+            <button class="mode-btn" onclick="setGameMode('pvc')">Player vs Computer</button>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <button class="cell" onclick="playerMove(0)"></button>
+            <button class="cell" onclick="playerMove(1)"></button>
+            <button class="cell" onclick="playerMove(2)"></button>
+            <button class="cell" onclick="playerMove(3)"></button>
+            <button class="cell" onclick="playerMove(4)"></button>
+            <button class="cell" onclick="playerMove(5)"></button>
+            <button class="cell" onclick="playerMove(6)"></button>
+            <button class="cell" onclick="playerMove(7)"></button>
+            <button class="cell" onclick="playerMove(8)"></button>
+        </div>
+
+        <div class="buttons">
+            <button class="reset-btn" onclick="resetGame()">New Game</button>
+        </div>
+
+        <div class="score">
+            <div>X Wins: <span class="score-value" id="xWins">0</span></div>
+            <div>Draws: <span class="score-value" id="draws">0</span></div>
+            <div>O Wins: <span class="score-value" id="oWins">0</span></div>
+        </div>
+
+        <div class="info" id="info">
+            Click cells to play. In Player vs Computer mode, you are X and computer is O.
+        </div>
+    </div>
+
+    <script>
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let gameMode = 'pvp'; // 'pvp' for player vs player, 'pvc' for player vs computer
+        let scores = { X: 0, draws: 0, O: 0 };
+
+        const winPatterns = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ];
+
+        function setGameMode(mode) {
+            gameMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            resetGame();
+        }
+
+        function playerMove(index) {
+            if (board[index] !== '' || !gameActive) return;
+
+            board[index] = currentPlayer;
+            updateBoard();
+
+            if (checkWinner()) {
+                updateStatus(`${currentPlayer} Wins!`);
+                gameActive = false;
+                updateScores(currentPlayer);
+                return;
+            }
+
+            if (board.every(cell => cell !== '')) {
+                updateStatus('It\'s a Draw!');
+                gameActive = false;
+                updateScores('draw');
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+
+            if (gameMode === 'pvc' && currentPlayer === 'O' && gameActive) {
+                updateStatus('Computer thinking...');
+                setTimeout(computerMove, 500);
+            } else {
+                updateStatus(`Player ${currentPlayer}'s turn`);
+            }
+        }
+
+        function computerMove() {
+            if (!gameActive) return;
+
+            const availableMoves = board
+                .map((cell, index) => cell === '' ? index : null)
+                .filter(val => val !== null);
+
+            if (availableMoves.length === 0) return;
+
+            // Simple AI: try to win, block opponent, or take center/corners
+            let move = findWinningMove('O') || findWinningMove('X') || 
+                       (board[4] === '' ? 4 : null) ||
+                       availableMoves.find(m => [0, 2, 6, 8].includes(m)) ||
+                       availableMoves[Math.floor(Math.random() * availableMoves.length)];
+
+            board[move] = 'O';
+            updateBoard();
+
+            if (checkWinner()) {
+                updateStatus('Computer Wins!');
+                gameActive = false;
+                updateScores('O');
+                return;
+            }
+
+            if (board.every(cell => cell !== '')) {
+                updateStatus('It\'s a Draw!');
+                gameActive = false;
+                updateScores('draw');
+                return;
+            }
+
+            currentPlayer = 'X';
+            updateStatus('Your turn (X)');
+        }
+
+        function findWinningMove(player) {
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                const values = [board[a], board[b], board[c]];
+                const playerCount = values.filter(v => v === player).length;
+
+                if (playerCount === 2 && values.includes('')) {
+                    return pattern[values.indexOf('')];
+                }
+            }
+            return null;
+        }
+
+        function checkWinner() {
+            return winPatterns.some(pattern => {
+                const [a, b, c] = pattern;
+                return board[a] && board[a] === board[b] && board[a] === board[c];
+            });
+        }
+
+        function updateBoard() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                cell.textContent = board[index];
+                cell.className = 'cell';
+                if (board[index]) {
+                    cell.classList.add(board[index].toLowerCase());
+                    cell.disabled = true;
+                }
+            });
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function updateScores(winner) {
+            if (winner === 'draw') {
+                scores.draws++;
+                document.getElementById('draws').textContent = scores.draws;
+            } else {
+                scores[winner]++;
+                document.getElementById(winner === 'X' ? 'xWins' : 'oWins').textContent = scores[winner];
+            }
+        }
+
+        function resetGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'X';
+            gameActive = true;
+
+            updateBoard();
+
+            if (gameMode === 'pvc') {
+                updateStatus('Your turn (X)');
+            } else {
+                updateStatus('Player X\'s turn');
+            }
+
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.disabled = false;
+            });
+        }
+
+        // Initialize the game
+        resetGame();
+    </script>
+</body>
+</html>
